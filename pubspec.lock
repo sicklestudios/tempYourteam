@@ -77,58 +77,58 @@ packages:
     dependency: "direct main"
     description:
       name: audioplayers
-      sha256: bb506873ab4fb663db9b47243754ef669adf684dbe6ba8b57c26e27b834065c4
+      sha256: "16451eab798b23ad9307aef6f9ca62bb8fb06542af8810eead0d236d3fd40a42"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "3.0.1"
   audioplayers_android:
     dependency: transitive
     description:
       name: audioplayers_android
-      sha256: "53969a1c5d94ebdaef72e334f1c0ea2f3946ab2baa8d398a9584ac27baf4f037"
+      sha256: b2c833e6f718b6b030454e329931229afafe9327fdb002874dd544dc8bf2484d
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.3"
+    version: "2.0.0"
   audioplayers_darwin:
     dependency: transitive
     description:
       name: audioplayers_darwin
-      sha256: dcd5a4ceef5aa3d04e8ae49441f13a3d9f93fe6e9e88fe121ff6b6f391b2a40b
+      sha256: e7a3c8759bf11ecfe4b20df338bf9f3d37c7719a5761c46a3833aba0ceeaacff
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.4"
+    version: "3.0.1"
   audioplayers_linux:
     dependency: transitive
     description:
       name: audioplayers_linux
-      sha256: ea1cb9a5c9389b38f293ee1375b22b02fb1d1f7a2e1517fcb674297dd074dc7b
+      sha256: e95b65e1f4d4764601dac5e65f8d8186fc29401043ab020f1dacec483d708707
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "1.0.4"
   audioplayers_platform_interface:
     dependency: transitive
     description:
       name: audioplayers_platform_interface
-      sha256: "589c3106d0c656540e81ac2c7a78a9414a4a6534ae7b77f06ddb5d6aa5dc653c"
+      sha256: "178581a44cb685fd798d2108111d2e98cca3400e30b9c3a05546f124fb37f600"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.0"
+    version: "4.0.0"
   audioplayers_web:
     dependency: transitive
     description:
       name: audioplayers_web
-      sha256: "13fb044a443276223774f8ed1f8d2b82f443cf8980edd0e172e55967c1556a49"
+      sha256: "859ba09be2a57e57a787273f18c8cf0d9b61383870c5ee4b5632fe9adbc37edf"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.0"
+    version: "2.2.0"
   audioplayers_windows:
     dependency: transitive
     description:
       name: audioplayers_windows
-      sha256: "87964ddece7275b97277935df67af60536155914c81c633f708914b99433129b"
+      sha256: "622e01c4c357c2aaf1b956c3a0f89d97c3cb40315c03f16e3b6c2a31ff9c38bc"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.1"
+    version: "1.1.3"
   awesome_notifications:
     dependency: "direct main"
     description:
@@ -169,14 +169,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
-  callkeep:
-    dependency: "direct main"
-    description:
-      name: callkeep
-      sha256: "9e86e9632a603a61f7045c179ea5ca0ee4da0a49fc5f80c2fe09fb422b96d3c6"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.3"
   characters:
     dependency: transitive
     description:
@@ -289,14 +281,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  dbus:
-    dependency: transitive
+  device_info_plus:
+    dependency: "direct main"
     description:
-      name: dbus
-      sha256: "6f07cba3f7b3448d42d015bfd3d53fe12e5b36da2423f23838efc1d5fb31a263"
+      name: device_info_plus
+      sha256: "1d6e5a61674ba3a68fb048a7c7b4ff4bebfed8d7379dbe8f2b718231be9a7c95"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.8"
+    version: "8.1.0"
+  device_info_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: device_info_plus_platform_interface
+      sha256: d3b01d5868b50ae571cd1dc6e502fc94d956b665756180f7b16ead09e836fd64
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0"
   dio:
     dependency: "direct main"
     description:
@@ -502,6 +502,70 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  flutter_callkit_incoming:
+    dependency: "direct main"
+    description:
+      name: flutter_callkit_incoming
+      sha256: "8e76be35d86bce00c358fc083c6f6232a7630958616d3e49cbc89ef661a4a464"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.3+3"
+  flutter_foreground_task:
+    dependency: "direct main"
+    description:
+      name: flutter_foreground_task
+      sha256: cc2b270d5ecdf09590523bf9e57645048b45784acf945ead62b6fc9681b2078f
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.1"
+  flutter_keyboard_visibility:
+    dependency: "direct main"
+    description:
+      name: flutter_keyboard_visibility
+      sha256: "86b71bbaffa38e885f5c21b1182408b9be6951fd125432cf6652c636254cef2d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.4.0"
+  flutter_keyboard_visibility_linux:
+    dependency: transitive
+    description:
+      name: flutter_keyboard_visibility_linux
+      sha256: "6fba7cd9bb033b6ddd8c2beb4c99ad02d728f1e6e6d9b9446667398b2ac39f08"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
+  flutter_keyboard_visibility_macos:
+    dependency: transitive
+    description:
+      name: flutter_keyboard_visibility_macos
+      sha256: c5c49b16fff453dfdafdc16f26bdd8fb8d55812a1d50b0ce25fc8d9f2e53d086
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
+  flutter_keyboard_visibility_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_keyboard_visibility_platform_interface
+      sha256: e43a89845873f7be10cb3884345ceb9aebf00a659f479d1c8f4293fcb37022a4
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
+  flutter_keyboard_visibility_web:
+    dependency: transitive
+    description:
+      name: flutter_keyboard_visibility_web
+      sha256: d3771a2e752880c79203f8d80658401d0c998e4183edca05a149f5098ce6e3d1
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
+  flutter_keyboard_visibility_windows:
+    dependency: transitive
+    description:
+      name: flutter_keyboard_visibility_windows
+      sha256: fc4b0f0b6be9b93ae527f3d527fb56ee2d918cd88bbca438c478af7bcfd0ef73
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -518,30 +582,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
-  flutter_local_notifications:
-    dependency: "direct main"
-    description:
-      name: flutter_local_notifications
-      sha256: "57d0012730780fe137260dd180e072c18a73fbeeb924cdc029c18aaa0f338d64"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.9.1"
-  flutter_local_notifications_linux:
-    dependency: transitive
-    description:
-      name: flutter_local_notifications_linux
-      sha256: b472bfc173791b59ede323661eae20f7fff0b6908fea33dd720a6ef5d576bae8
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.1"
-  flutter_local_notifications_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_local_notifications_platform_interface
-      sha256: "21bceee103a66a53b30ea9daf677f990e5b9e89b62f222e60dd241cd08d63d3a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.0"
   flutter_native_splash:
     dependency: "direct main"
     description:
@@ -566,6 +606,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.4.1"
+  flutter_svg:
+    dependency: "direct dev"
+    description:
+      name: flutter_svg
+      sha256: f999d84ad2efda1c4c3956e7968b713b3a24b06f0a0e4798e844e16bbb9bb70b
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0+1"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -760,6 +808,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.8.2"
+  path_parsing:
+    dependency: transitive
+    description:
+      name: path_parsing
+      sha256: e3e67b1629e6f7e8100b367d3db6ba6af4b1f0bb80f64db18ef1fbabd2fa9ccf
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   path_provider:
     dependency: transitive
     description:
@@ -912,6 +968,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.5"
+  proximity_sensor:
+    dependency: "direct main"
+    description:
+      name: proximity_sensor
+      sha256: "37d8556b3502c3688b3a6c01ed28978df1097a56555931b382fc2abf75765cbd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   rxdart:
     dependency: transitive
     description:
@@ -1173,6 +1237,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  vector_graphics:
+    dependency: transitive
+    description:
+      name: vector_graphics
+      sha256: "09562ef5f47aa84f6567495adb6b9cb2a3192b82c352623b8bd00b300d62603b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
+  vector_graphics_codec:
+    dependency: transitive
+    description:
+      name: vector_graphics_codec
+      sha256: "886e57742644ebed024dc3ade29712e37eea1b03d294fb314c0a3386243fe5a6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
+  vector_graphics_compiler:
+    dependency: transitive
+    description:
+      name: vector_graphics_compiler
+      sha256: "5d9010c4a292766c55395b2288532579a85673f8148460d1e233d98ffe10d24e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   vector_math:
     dependency: transitive
     description:
@@ -1181,6 +1269,46 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.4"
+  wakelock:
+    dependency: "direct main"
+    description:
+      name: wakelock
+      sha256: "769ecf42eb2d07128407b50cb93d7c10bd2ee48f0276ef0119db1d25cc2f87db"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.2"
+  wakelock_macos:
+    dependency: transitive
+    description:
+      name: wakelock_macos
+      sha256: "047c6be2f88cb6b76d02553bca5a3a3b95323b15d30867eca53a19a0a319d4cd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
+  wakelock_platform_interface:
+    dependency: transitive
+    description:
+      name: wakelock_platform_interface
+      sha256: "1f4aeb81fb592b863da83d2d0f7b8196067451e4df91046c26b54a403f9de621"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0"
+  wakelock_web:
+    dependency: transitive
+    description:
+      name: wakelock_web
+      sha256: "1b256b811ee3f0834888efddfe03da8d18d0819317f20f6193e2922b41a501b5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
+  wakelock_windows:
+    dependency: transitive
+    description:
+      name: wakelock_windows
+      sha256: "857f77b3fe6ae82dd045455baa626bc4b93cb9bb6c86bf3f27c182167c3a5567"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
   win32:
     dependency: transitive
     description:
@@ -1214,5 +1342,5 @@ packages:
     source: hosted
     version: "3.1.1"
 sdks:
-  dart: ">=2.18.5 <4.0.0"
-  flutter: ">=3.3.0"
+  dart: ">=2.19.0-0 <3.0.0"
+  flutter: ">=3.7.0-0"

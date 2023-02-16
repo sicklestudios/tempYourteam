@@ -1,17 +1,26 @@
+import 'dart:developer';
+
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:callkeep/callkeep.dart';
+// import 'package:callkeep/callkeep.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:yourteam/call_constants_global.dart';
+import 'package:yourteam/call_ongoing_notification.dart';
 import 'package:yourteam/constants/colors.dart';
 import 'package:yourteam/constants/constant_utils.dart';
 import 'package:yourteam/constants/constants.dart';
 import 'package:yourteam/methods/auth_methods.dart';
 import 'package:yourteam/models/user_model.dart';
+import 'package:yourteam/navigation_service.dart';
 import 'package:yourteam/screens/auth/login_screen.dart';
 import 'package:yourteam/screens/bottom_pages.dart/contacts_screen.dart';
 import 'package:yourteam/screens/bottom_pages.dart/profile/profile_screen.dart';
 import 'package:yourteam/screens/bottom_pages.dart/todo_screen.dart';
+import 'package:yourteam/screens/call/calls_ui/screens/dialScreen/dial_screen.dart';
 import 'package:yourteam/screens/drawer/drawer_files/drawer_menu-controller.dart';
 import 'package:yourteam/screens/drawer/drawer_todo_controller.dart';
 import 'package:yourteam/screens/notifications_screen.dart';
@@ -19,14 +28,14 @@ import 'package:yourteam/screens/search_screen.dart';
 import 'package:yourteam/screens/task/add_task.dart';
 import 'package:yourteam/screens/toppages/call_screen_list.dart';
 import 'package:yourteam/screens/toppages/chat/chat_list_screen.dart';
+import 'package:yourteam/service/fcmcallservices/fcmcallservices.dart';
 import 'package:yourteam/service/local_push_notification.dart';
-
-//message handler
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  LocalNotificationService.display(
-    message,
-  );
-}
+// //message handler
+// Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   LocalNotificationService.display(
+//     message,
+//   );
+// }
 
 class HomeController extends StatefulWidget {
   const HomeController({super.key});
@@ -38,15 +47,24 @@ class HomeController extends StatefulWidget {
 class _HomeControllerState extends State<HomeController>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   /// For fcm background message handler.
-  final FlutterCallkeep _callKeep = FlutterCallkeep();
-  bool _callKeepInited = false;
-
+  ///
   //value to get from text field
   String value = "";
   int pageIndex = 0;
   int bottomIndex = 0;
   var topPages = [];
   var bottomPages = [];
+  initvariables() async {
+    await storeNotificationToken();
+    await fetchUserInfo();
+    ISOPEN = true;
+    CURRENT_CONTEXT = context;
+
+    await FcmCallServices.forgroundnotify();
+    FirebaseMessaging.onBackgroundMessage(
+        FcmCallServices.firebaseMessagingBackgroundHandler);
+    await FcmCallServices.notificationstream();
+  }
 
   _getText() {
     if (bottomIndex == 0) {
@@ -92,27 +110,10 @@ class _HomeControllerState extends State<HomeController>
 
   // This variable determnies whether the child FABs are visible or not
   bool _isExpanded = false;
+  String? _currentUuid;
 
   bool showSearchBar = false;
-  final callSetup = <String, dynamic>{
-    'ios': {
-      'appName': 'CallKeepDemo',
-    },
-    'android': {
-      'alertTitle': 'Permissions required',
-      'alertDescription':
-          'This application needs to access your phone accounts',
-      'cancelButton': 'Cancel',
-      'okButton': 'ok',
-      // Required to get audio in background when using Android 11
-      'foregroundService': {
-        'channelId': 'com.company.my',
-        'channelName': 'Foreground service for my app',
-        'notificationTitle': 'My app is running on background',
-        'notificationIcon': 'mipmap/ic_notification_launcher',
-      },
-    },
-  };
+  T? _ambiguate<T>(T? value) => value;
 
   @override
   initState() {
@@ -138,19 +139,63 @@ class _HomeControllerState extends State<HomeController>
     AuthMethods().setUserState(true);
     //setting up fcm
 
-    FirebaseMessaging.instance.getInitialMessage();
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    // // FirebaseMessaging.instance.getInitialMessage();
+    // FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    FirebaseMessaging.onMessage.listen((event) {
-      LocalNotificationService.display(
-        event,
-      );
+    // FirebaseMessaging.onMessage.listen((event) {
+    //   LocalNotificationService.display(
+    //     event,
+    //   );
+    // });
+    //Check call when open app from terminated
+    checkAndNavigationCallingPage();
+    initvariables();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      setState(() {});
     });
-    storeNotificationToken();
-    fetchUserInfo();
-
-    _callKeep.setup(context, callSetup);
+    initalizeNotification();
+    initForegroundTask();
+    _ambiguate(WidgetsBinding.instance)?.addPostFrameCallback((_) async {
+      // You can get the previous ReceivePort without restarting the service.
+      // if (await FlutterForegroundTask.isRunningService) {
+      //   final newReceivePort = await FlutterForegroundTask.receivePort;
+      //   _registerReceivePort(newReceivePort);
+      // }
+    });
+    // FlutterBackgroundService().invoke("setAsForeground");
+    // _callKeep.setup(context, callSetup);
   }
+
+  getCurrentCall() async {
+    //check current call from pushkit if possible
+    var calls = await FlutterCallkitIncoming.activeCalls();
+    if (calls is List) {
+      if (calls.isNotEmpty) {
+        print('DATA: $calls');
+        _currentUuid = calls[0]['id'];
+        return calls[0];
+      } else {
+        _currentUuid = "";
+        return null;
+      }
+    }
+  }
+
+  checkAndNavigationCallingPage() async {
+    var currentCall = await getCurrentCall();
+    if (currentCall != null) {
+      setState(() {
+        appValueNotifier.globalisCallOnGoing.value = true;
+      });
+      NavigationService.instance
+          .pushNamedIfNotCurrent(AppRoute.callingPage, args: currentCall);
+    } else {
+      setState(() {
+        appValueNotifier.globalisCallOnGoing.value = false;
+      });
+    }
+  }
+
   //Notification related work
 
   storeNotificationToken() async {
@@ -176,8 +221,11 @@ class _HomeControllerState extends State<HomeController>
       case AppLifecycleState.resumed:
         fetchUserInfoWithoutSetState();
         AuthMethods().setUserState(true);
+        checkAndNavigationCallingPage();
         break;
       case AppLifecycleState.inactive:
+        AuthMethods().setUserState(false);
+        break;
       case AppLifecycleState.detached:
       case AppLifecycleState.paused:
         AuthMethods().setUserState(false);
@@ -246,425 +294,460 @@ class _HomeControllerState extends State<HomeController>
       const ProfileScreen(),
     ];
     var size = MediaQuery.of(context).size;
-    return WillPopScope(
-      onWillPop: () async {
-        if (showSearchBar) {
-          setState(() {
-            showSearchBar = !showSearchBar;
-          });
-          return false;
-        } else {
-          return true;
-        }
-      },
-      child: GestureDetector(
-          onTap: () {
-            if (showSearchBar) {
-              setState(() {
-                showSearchBar = !showSearchBar;
-                value = "";
-              });
-            }
+    return WithForegroundTask(
+      child: WillPopScope(
+        onWillPop: () async {
+          if (showSearchBar) {
+            setState(() {
+              showSearchBar = !showSearchBar;
+            });
+            return false;
+          } else {
+            return true;
+          }
+        },
+        child: SafeArea(
+          child: GestureDetector(
+              onTap: () {
+                if (showSearchBar) {
+                  setState(() {
+                    showSearchBar = !showSearchBar;
+                    value = "";
+                  });
+                }
 
-            if (_isExpanded) {
-              _animationController.reverse();
-              _isExpanded = !_isExpanded;
-            }
-          },
-          child: Scaffold(
-            // backgroundColor: scaffoldBackgroundColor,
-            floatingActionButton:
-                bottomIndex <= 1 ? _getFloatingButton() : const SizedBox(),
-            bottomNavigationBar: BottomNavigationBar(
-                backgroundColor: whiteColor,
-                showSelectedLabels: true,
-                showUnselectedLabels: true,
-                items: <BottomNavigationBarItem>[
-                  _getBottomItem(Icons.message_rounded, "Chats",
-                      bottomIndex == 0 ? mainColor : greyColor),
-                  _getBottomItem(Icons.note, "To Do",
-                      bottomIndex == 1 ? mainColor : greyColor),
-                  _getBottomItem(Icons.people, "Contacts",
-                      bottomIndex == 2 ? mainColor : greyColor),
-                  _getBottomItem(Icons.person, "Profile",
-                      bottomIndex == 3 ? mainColor : greyColor),
-                ],
-                type: BottomNavigationBarType.fixed,
-                currentIndex: bottomIndex,
-                selectedItemColor: mainColor,
-                unselectedItemColor: greyColor,
-                iconSize: 35,
-                onTap: _onItemTapped,
-                elevation: 5),
-            appBar: showSearchBar
-                ? AppBar(
-                    automaticallyImplyLeading: false,
-                    backgroundColor: Colors.transparent,
-                    toolbarHeight: 100,
-                    foregroundColor: Colors.black,
-                    leading: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            showSearchBar = !showSearchBar;
-                          });
-                        },
-                        icon: const Icon(Icons.arrow_back_ios)),
-                    elevation: 0,
-                    title: TextField(
-                      onChanged: (val) {
-                        setState(() {
-                          value = val;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                          border: InputBorder.none, hintText: 'Search'),
-                    ))
-                : AppBar(
-                    automaticallyImplyLeading: false,
-                    backgroundColor: Colors.transparent,
-                    toolbarHeight: 100,
-                    elevation: 0,
-                    leading: Builder(
-                      builder: (context) {
-                        return IconButton(
-                          onPressed: () {
-                            // showSimpleDialog(context)
-                            Scaffold.of(context).openDrawer();
-                          },
-                          // icon: getIcon(Icons.groups_rounded),
-                          icon: Image.asset('assets/group.png'),
-                        );
-                      },
-                    ),
-                    title: Text(
-                      _getText(),
-                      style: const TextStyle(
-                          color: mainTextColor, fontWeight: FontWeight.bold),
-                    ),
-                    centerTitle: true,
-                    actions: [
-                      if (bottomIndex != 1 &&
-                          bottomIndex != 3 &&
-                          pageIndex != 1)
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              showSearchBar = !showSearchBar;
-                            });
-                          },
-                          icon: getIcon(Icons.search),
-                        ),
-                      IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const NotificationsScreen()));
-                        },
-                        icon: getIcon(Icons.notifications),
-                      ),
-                    ],
-                  ),
-            drawer: SafeArea(
-              child: Drawer(
-                backgroundColor: mainColor,
-                width: size.width / 1.5,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 100),
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.end,
-                    //   children: [
-                    //     IconButton(
-                    //         onPressed: () {
-                    //           Navigator.pop(context);
-                    //         },
-                    //         icon: const Icon(
-                    //           Icons.close_rounded,
-                    //           color: Colors.red,
-                    //         )),
-                    //   ],
-                    // ),
-                    ListTile(
-                      leading: SizedBox(
-                        width: 60,
-                        child: CircleAvatar(
-                          radius: 45,
-                          backgroundImage: userInfo == null
-                              ? const AssetImage(
-                                  'assets/user.png',
-                                )
-                              : userInfo!.photoUrl == ""
-                                  ? const AssetImage(
-                                      'assets/user.png',
-                                    )
-                                  : CachedNetworkImageProvider(
-                                      userInfo!.photoUrl,
-                                    ) as ImageProvider,
-                        ),
-                      ),
-                      title: Text(
-                        userInfo == null ? "Loading" : userInfo!.username,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      // subtitle: Row(
-                      //   // ignore: prefer_const_literals_to_create_immutables
-                      //   children: [
-                      //     const Icon(Icons.call, size: 15, color: Colors.white),
-                      //     Text(
-                      //       userInfo == null ? "Loading" : userInfo!.contact,
-                      //       style: const TextStyle(color: Colors.white),
-                      //     )
-                      //   ],
-                      // ),
-                      // trailing: IconButton(
-                      //     onPressed: () {
-                      //       Navigator.pop(context);
-                      //     },
-                      //     icon: const Icon(
-                      //       Icons.close_rounded,
-                      //       color: Colors.red,
-                      //     )),
-                    ),
-                    const SizedBox(height: 50),
-                    Expanded(
-                      child: Container(
-                        // height: size.height / 1.6,
-                        decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(25),
-                                topRight: Radius.circular(25))),
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            mainAxisSize: MainAxisSize.max,
-                            // ignore: prefer_const_literals_to_create_immutables
-                            children: [
-                              Column(
-                                children: [
-                                  const SizedBox(height: 20),
-                                  ListTile(
-                                    dense: true,
-                                    leading: Container(
-                                        decoration: BoxDecoration(
-                                            color:
-                                                Colors.green.withOpacity(0.2),
-                                            borderRadius:
-                                                BorderRadius.circular(100)),
-                                        width: 45,
-                                        height: 45,
-                                        child: const Center(
-                                            child: Icon(
-                                          Icons.folder,
-                                          size: 30,
-                                          color:
-                                              Color.fromARGB(255, 85, 164, 88),
-                                        ))),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const DrawerMenuController()));
-                                      // Navigator.push(
-                                      //     context,
-                                      //     MaterialPageRoute(
-                                      //         builder: (context) => const MyDoctors()));
+                if (_isExpanded) {
+                  _animationController.reverse();
+                  _isExpanded = !_isExpanded;
+                }
+              },
+              child: Column(
+                children: [
+                  ValueListenableBuilder(
+                      valueListenable: appValueNotifier.globalisCallOnGoing,
+                      builder: (context, value, widget) {
+                        if (appValueNotifier.globalisCallOnGoing.value) {
+                          getCallNotifierWidget(context);
+                        }
+                        return Container();
+                      }),
+                  Expanded(
+                    child: Scaffold(
+                      // backgroundColor: scaffoldBackgroundColor,
+                      floatingActionButton: bottomIndex <= 1
+                          ? _getFloatingButton()
+                          : const SizedBox(),
+                      bottomNavigationBar: BottomNavigationBar(
+                          backgroundColor: whiteColor,
+                          showSelectedLabels: true,
+                          showUnselectedLabels: true,
+                          items: <BottomNavigationBarItem>[
+                            _getBottomItem(Icons.message_rounded, "Chats",
+                                bottomIndex == 0 ? mainColor : greyColor),
+                            _getBottomItem(Icons.note, "To Do",
+                                bottomIndex == 1 ? mainColor : greyColor),
+                            _getBottomItem(Icons.people, "Contacts",
+                                bottomIndex == 2 ? mainColor : greyColor),
+                            _getBottomItem(Icons.person, "Profile",
+                                bottomIndex == 3 ? mainColor : greyColor),
+                          ],
+                          type: BottomNavigationBarType.fixed,
+                          currentIndex: bottomIndex,
+                          selectedItemColor: mainColor,
+                          unselectedItemColor: greyColor,
+                          iconSize: 35,
+                          onTap: _onItemTapped,
+                          elevation: 5),
+                      appBar: showSearchBar
+                          ? AppBar(
+                              automaticallyImplyLeading: false,
+                              backgroundColor: Colors.transparent,
+                              toolbarHeight: 100,
+                              foregroundColor: Colors.black,
+                              leading: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      showSearchBar = !showSearchBar;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.arrow_back_ios)),
+                              elevation: 0,
+                              title: TextField(
+                                onChanged: (val) {
+                                  setState(() {
+                                    value = val;
+                                  });
+                                },
+                                decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    hintText: 'Search'),
+                              ))
+                          : AppBar(
+                              automaticallyImplyLeading: false,
+                              backgroundColor: Colors.transparent,
+                              toolbarHeight: 100,
+                              elevation: 0,
+                              leading: Builder(
+                                builder: (context) {
+                                  return IconButton(
+                                    onPressed: () {
+                                      // showSimpleDialog(context)
+                                      Scaffold.of(context).openDrawer();
                                     },
-                                    title: const Text(
-                                      "Files",
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    trailing: const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 18,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  // ListTile(
-                                  //   onTap: () {
-                                  //     Navigator.pop(context);
-                                  //     // Navigator.push(
-                                  //     //     context,
-                                  //     //     MaterialPageRoute(
-                                  //     //         builder: (context) => const AllRecords()));
-                                  //   },
-                                  //   leading: Container(
-                                  //     decoration: BoxDecoration(
-                                  //         color: Colors.blue.withOpacity(0.3),
-                                  //         borderRadius: BorderRadius.circular(50)),
-                                  //     width: 45,
-                                  //     height: 45,
-                                  //     child: const Center(
-                                  //         child: Icon(
-                                  //       Icons.notes_outlined,
-                                  //       size: 35,
-                                  //       color: Colors.blue,
-                                  //     )),
-                                  //   ),
-                                  //   title: const Text(
-                                  //     "Notes",
-                                  //     style: TextStyle(
-                                  //         color: Colors.black,
-                                  //         fontWeight: FontWeight.bold),
-                                  //   ),
-                                  //   trailing: const Icon(
-                                  //     Icons.arrow_forward_ios,
-                                  //     size: 18,
-                                  //     color: Colors.black,
-                                  //   ),
-                                  // ),
-                                  ListTile(
-                                    leading: Container(
-                                      decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.3),
-                                          borderRadius:
-                                              BorderRadius.circular(50)),
-                                      width: 45,
-                                      height: 45,
-                                      child: const Center(
-                                          child: Icon(
-                                        Icons.note_alt,
-                                        size: 35,
-                                        color: Color.fromARGB(255, 171, 70, 70),
-                                      )),
-                                    ),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const DrawerTodoController()));
-                                      // Navigator.push(
-                                      //     context,
-                                      //     MaterialPageRoute(
-                                      //         builder: (context) => const PaymentScreen()));
-                                    },
-                                    title: const Text(
-                                      "To Do",
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    trailing: const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 18,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ],
+                                    // icon: getIcon(Icons.groups_rounded),
+                                    icon: Image.asset('assets/group.png'),
+                                  );
+                                },
                               ),
-                              // ListTile(
-                              //   leading: Container(
-                              //     decoration: BoxDecoration(
-                              //         color:
-                              //             const Color.fromARGB(255, 249, 236, 122)
-                              //                 .withOpacity(0.3),
-                              //         borderRadius: BorderRadius.circular(50)),
-                              //     width: 45,
-                              //     height: 45,
-                              //     child: Center(
-                              //         child: Icon(
-                              //       Icons.lock_clock,
-                              //       size: 35,
-                              //       color: Colors.yellow.shade900,
-                              //     )),
-                              //   ),
-                              //   onTap: () {
-                              //     Navigator.pop(context);
-                              //     // Navigator.push(
-                              //     //     context,
-                              //     //     MaterialPageRoute(
-                              //     //         builder: (context) => const PaymentScreen()));
-                              //   },
-                              //   title: const Text(
-                              //     "Reminder",
-                              //     style: TextStyle(
-                              //         color: Colors.black,
-                              //         fontWeight: FontWeight.bold),
-                              //   ),
-                              //   trailing: const Icon(
-                              //     Icons.arrow_forward_ios,
-                              //     size: 18,
-                              //     color: Colors.black,
-                              //   ),
-                              // ),
-                              Column(
-                                children: [
-                                  ListTile(
-                                    leading: Container(
-                                      decoration: BoxDecoration(
-                                          color: const Color.fromARGB(
-                                                  255, 249, 236, 122)
-                                              .withOpacity(0.3),
-                                          borderRadius:
-                                              BorderRadius.circular(50)),
-                                      width: 45,
-                                      height: 45,
-                                      child: Center(
-                                          child: Icon(
-                                        Icons.logout_rounded,
-                                        size: 35,
-                                        color: Colors.yellow.shade900,
-                                      )),
-                                    ),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      AuthMethods().signOut();
-                                      Navigator.pushAndRemoveUntil(
-                                          context,
-                                          MaterialPageRoute(
+                              title: Text(
+                                _getText(),
+                                style: const TextStyle(
+                                    color: mainTextColor,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              centerTitle: true,
+                              actions: [
+                                if (bottomIndex != 1 &&
+                                    bottomIndex != 3 &&
+                                    pageIndex != 1)
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        showSearchBar = !showSearchBar;
+                                      });
+                                    },
+                                    icon: getIcon(Icons.search),
+                                  ),
+                                IconButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
                                             builder: (context) =>
-                                                const LoginScreen(),
-                                          ),
-                                          ModalRoute.withName('/login'));
-                                    },
-                                    title: const Text(
-                                      "Logout",
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    trailing: const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 18,
-                                      color: Colors.black,
-                                    ),
+                                                const NotificationsScreen()));
+                                  },
+                                  icon: getIcon(Icons.notifications),
+                                ),
+                              ],
+                            ),
+                      drawer: SafeArea(
+                        child: Drawer(
+                          backgroundColor: mainColor,
+                          width: size.width / 1.5,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 100),
+                              // Row(
+                              //   mainAxisAlignment: MainAxisAlignment.end,
+                              //   children: [
+                              //     IconButton(
+                              //         onPressed: () {
+                              //           Navigator.pop(context);
+                              //         },
+                              //         icon: const Icon(
+                              //           Icons.close_rounded,
+                              //           color: Colors.red,
+                              //         )),
+                              //   ],
+                              // ),
+                              ListTile(
+                                leading: SizedBox(
+                                  width: 60,
+                                  child: CircleAvatar(
+                                    radius: 45,
+                                    backgroundImage: userInfo == null
+                                        ? const AssetImage(
+                                            'assets/user.png',
+                                          )
+                                        : userInfo!.photoUrl == ""
+                                            ? const AssetImage(
+                                                'assets/user.png',
+                                              )
+                                            : CachedNetworkImageProvider(
+                                                userInfo!.photoUrl,
+                                              ) as ImageProvider,
                                   ),
-                                  const SizedBox(height: 20),
+                                ),
+                                title: Text(
+                                  userInfo == null
+                                      ? "Loading"
+                                      : userInfo!.username,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                // subtitle: Row(
+                                //   // ignore: prefer_const_literals_to_create_immutables
+                                //   children: [
+                                //     const Icon(Icons.call, size: 15, color: Colors.white),
+                                //     Text(
+                                //       userInfo == null ? "Loading" : userInfo!.contact,
+                                //       style: const TextStyle(color: Colors.white),
+                                //     )
+                                //   ],
+                                // ),
+                                // trailing: IconButton(
+                                //     onPressed: () {
+                                //       Navigator.pop(context);
+                                //     },
+                                //     icon: const Icon(
+                                //       Icons.close_rounded,
+                                //       color: Colors.red,
+                                //     )),
+                              ),
+                              const SizedBox(height: 50),
+                              Expanded(
+                                child: Container(
+                                  // height: size.height / 1.6,
+                                  decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(25),
+                                          topRight: Radius.circular(25))),
+                                  child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      mainAxisSize: MainAxisSize.max,
+                                      // ignore: prefer_const_literals_to_create_immutables
+                                      children: [
+                                        Column(
+                                          children: [
+                                            const SizedBox(height: 20),
+                                            ListTile(
+                                              dense: true,
+                                              leading: Container(
+                                                  decoration: BoxDecoration(
+                                                      color: Colors.green
+                                                          .withOpacity(0.2),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              100)),
+                                                  width: 45,
+                                                  height: 45,
+                                                  child: const Center(
+                                                      child: Icon(
+                                                    Icons.folder,
+                                                    size: 30,
+                                                    color: Color.fromARGB(
+                                                        255, 85, 164, 88),
+                                                  ))),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const DrawerMenuController()));
+                                                // Navigator.push(
+                                                //     context,
+                                                //     MaterialPageRoute(
+                                                //         builder: (context) => const MyDoctors()));
+                                              },
+                                              title: const Text(
+                                                "Files",
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              trailing: const Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 18,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            // ListTile(
+                                            //   onTap: () {
+                                            //     Navigator.pop(context);
+                                            //     // Navigator.push(
+                                            //     //     context,
+                                            //     //     MaterialPageRoute(
+                                            //     //         builder: (context) => const AllRecords()));
+                                            //   },
+                                            //   leading: Container(
+                                            //     decoration: BoxDecoration(
+                                            //         color: Colors.blue.withOpacity(0.3),
+                                            //         borderRadius: BorderRadius.circular(50)),
+                                            //     width: 45,
+                                            //     height: 45,
+                                            //     child: const Center(
+                                            //         child: Icon(
+                                            //       Icons.notes_outlined,
+                                            //       size: 35,
+                                            //       color: Colors.blue,
+                                            //     )),
+                                            //   ),
+                                            //   title: const Text(
+                                            //     "Notes",
+                                            //     style: TextStyle(
+                                            //         color: Colors.black,
+                                            //         fontWeight: FontWeight.bold),
+                                            //   ),
+                                            //   trailing: const Icon(
+                                            //     Icons.arrow_forward_ios,
+                                            //     size: 18,
+                                            //     color: Colors.black,
+                                            //   ),
+                                            // ),
+                                            ListTile(
+                                              leading: Container(
+                                                decoration: BoxDecoration(
+                                                    color: Colors.red
+                                                        .withOpacity(0.3),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            50)),
+                                                width: 45,
+                                                height: 45,
+                                                child: const Center(
+                                                    child: Icon(
+                                                  Icons.note_alt,
+                                                  size: 35,
+                                                  color: Color.fromARGB(
+                                                      255, 171, 70, 70),
+                                                )),
+                                              ),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const DrawerTodoController()));
+                                                // Navigator.push(
+                                                //     context,
+                                                //     MaterialPageRoute(
+                                                //         builder: (context) => const PaymentScreen()));
+                                              },
+                                              title: const Text(
+                                                "To Do",
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              trailing: const Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 18,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        // ListTile(
+                                        //   leading: Container(
+                                        //     decoration: BoxDecoration(
+                                        //         color:
+                                        //             const Color.fromARGB(255, 249, 236, 122)
+                                        //                 .withOpacity(0.3),
+                                        //         borderRadius: BorderRadius.circular(50)),
+                                        //     width: 45,
+                                        //     height: 45,
+                                        //     child: Center(
+                                        //         child: Icon(
+                                        //       Icons.lock_clock,
+                                        //       size: 35,
+                                        //       color: Colors.yellow.shade900,
+                                        //     )),
+                                        //   ),
+                                        //   onTap: () {
+                                        //     Navigator.pop(context);
+                                        //     // Navigator.push(
+                                        //     //     context,
+                                        //     //     MaterialPageRoute(
+                                        //     //         builder: (context) => const PaymentScreen()));
+                                        //   },
+                                        //   title: const Text(
+                                        //     "Reminder",
+                                        //     style: TextStyle(
+                                        //         color: Colors.black,
+                                        //         fontWeight: FontWeight.bold),
+                                        //   ),
+                                        //   trailing: const Icon(
+                                        //     Icons.arrow_forward_ios,
+                                        //     size: 18,
+                                        //     color: Colors.black,
+                                        //   ),
+                                        // ),
+                                        Column(
+                                          children: [
+                                            ListTile(
+                                              leading: Container(
+                                                decoration: BoxDecoration(
+                                                    color: const Color.fromARGB(
+                                                            255, 249, 236, 122)
+                                                        .withOpacity(0.3),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            50)),
+                                                width: 45,
+                                                height: 45,
+                                                child: Center(
+                                                    child: Icon(
+                                                  Icons.logout_rounded,
+                                                  size: 35,
+                                                  color: Colors.yellow.shade900,
+                                                )),
+                                              ),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                AuthMethods().signOut();
+                                                Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const LoginScreen(),
+                                                    ),
+                                                    ModalRoute.withName(
+                                                        '/login'));
+                                              },
+                                              title: const Text(
+                                                "Logout",
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              trailing: const Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 18,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 20),
+                                          ],
+                                        ),
+                                      ]),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      body: bottomIndex == 0
+                          ? SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  _TabSwitch(
+                                    value: pageIndex,
+                                    callBack: () {
+                                      setState(() {
+                                        if (pageIndex == 0) {
+                                          pageIndex = 1;
+                                        } else {
+                                          pageIndex = 0;
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  topPages[pageIndex],
                                 ],
                               ),
-                            ]),
-                      ),
+                            )
+                          : bottomPages[bottomIndex],
                     ),
-                  ],
-                ),
-              ),
-            ),
-            body: bottomIndex == 0
-                ? Column(
-                    children: [
-                      _TabSwitch(
-                        value: pageIndex,
-                        callBack: () {
-                          setState(() {
-                            if (pageIndex == 0) {
-                              pageIndex = 1;
-                            } else {
-                              pageIndex = 0;
-                            }
-                          });
-                        },
-                      ),
-                      topPages[pageIndex],
-                    ],
-                  )
-                : bottomPages[bottomIndex],
-          )),
+                  ),
+                ],
+              )),
+        ),
+      ),
     );
   }
 

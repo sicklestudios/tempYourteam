@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:yourteam/call_ongoing_notification.dart';
 import 'package:yourteam/constants/colors.dart';
+import 'package:yourteam/navigation_service.dart';
 import 'package:yourteam/screens/auth/login_screen.dart';
 import 'package:yourteam/screens/auth/splash_screen.dart';
+import 'package:yourteam/screens/call/calls_ui/screens/dialScreen/dial_screen.dart';
 import 'package:yourteam/screens/home_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:yourteam/service/fcmcallservices/fcmcallservices.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -13,6 +17,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // await initializeService();
+
   runApp(const MyApp());
 }
 
@@ -42,8 +48,13 @@ class _MyAppState extends State<MyApp> {
           selectionHandleColor: Colors.black,
         ),
       ),
+      onGenerateRoute: AppRoute.generateRoute,
+      navigatorKey: NavigationService.instance.navigationKey,
+      navigatorObservers: <NavigatorObserver>[
+        NavigationService.instance.routeObserver
+      ],
       initialRoute: '/',
-      // home:PickupScreen(call: Ca),
+      // home: DialScreen(),
       routes: {
         '/': (context) {
           return const SplashScreen();

@@ -1,9 +1,11 @@
 import 'dart:developer';
 import 'dart:math' as math;
 
+import 'package:another_flushbar/flushbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:uuid/uuid.dart';
@@ -17,6 +19,7 @@ import 'package:yourteam/models/chat_model.dart';
 import 'package:yourteam/models/todo_model.dart';
 import 'package:yourteam/models/user_model.dart';
 import 'package:yourteam/screens/bottom_pages.dart/contacts_screen.dart';
+import 'package:yourteam/screens/call/calls_ui/screens/dialScreen/dial_screen.dart';
 import 'package:yourteam/screens/search_screen.dart';
 import 'package:yourteam/screens/toppages/chat/chat_screen.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -25,6 +28,70 @@ import 'package:timeago/timeago.dart' as timeago;
 MessageReply? messageReply;
 //getting a random number
 math.Random random = math.Random();
+
+Widget getCallNotifierWidget(context) {
+  return Container(
+    height: 35,
+    width: MediaQuery.of(context).size.width,
+    decoration: const BoxDecoration(color: mainColor),
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      body: InkWell(
+        onTap: () {
+          log("Hi Call pressed");
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => const DialScreen()));
+        },
+        child: SizedBox(
+          height: 35,
+          width: MediaQuery.of(context).size.width,
+          child: const Center(
+              child: Text(
+            "Ongoing Call",
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          )),
+        ),
+      ),
+    ),
+  );
+}
+
+void showFloatingFlushBar(
+    BuildContext context, String upMessage, String downMessage) {
+  Flushbar(
+    borderRadius: BorderRadius.circular(8),
+    duration: const Duration(seconds: 1),
+    backgroundGradient: const LinearGradient(
+      colors: [mainColor, mainColorFaded],
+      stops: [0.6, 1],
+    ),
+    boxShadows: const [
+      BoxShadow(
+        color: Colors.white,
+        offset: Offset(3, 3),
+        blurRadius: 3,
+      ),
+    ],
+    titleColor: Colors.white,
+    messageColor: Colors.white,
+    dismissDirection: FlushbarDismissDirection.HORIZONTAL,
+    forwardAnimationCurve: Curves.fastLinearToSlowEaseIn,
+    title: upMessage,
+    message: downMessage,
+  ).show(context);
+}
+
+showToastMessage(String toastText) {
+  Fluttertoast.showToast(
+      msg: toastText,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.CENTER,
+      timeInSecForIosWeb: 1,
+      backgroundColor: mainColor,
+      textColor: Colors.white,
+      fontSize: 16.0);
+}
+
 getRandom() {
   return random.nextInt(3) + 0;
 }
@@ -53,28 +120,16 @@ getMessageCard(ChatContactModel model, context) {
         },
         leading: Stack(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: model.photoUrl == ""
-                  ? Image.asset(
-                      'assets/user.png',
-                      width: 50,
-                      height: 50,
-                    )
-                  : CachedNetworkImage(
-                      imageUrl: model.photoUrl,
-                      width: 50,
-                      errorWidget: ((context, url, error) {
-                        return Image.asset(
-                          'assets/user.png',
-                          width: 50,
-                          height: 50,
-                        );
-                      }),
-                      height: 50,
-                      fit: BoxFit.fitHeight,
-                    ),
-            ),
+            model.photoUrl != ""
+                ? CircleAvatar(
+                    radius: 25,
+                    backgroundImage: CachedNetworkImageProvider(
+                      model.photoUrl,
+                      // maxWidth: 50,
+                      // maxHeight: 50,
+                    ))
+                : const CircleAvatar(
+                    radius: 25, backgroundImage: AssetImage('assets/user.png')),
             StreamBuilder<bool>(
                 stream: ChatMethods().getOnlineStream(model.contactId),
                 builder: (context, snapshot) {
@@ -1342,7 +1397,8 @@ getPeopleCard(UserModel model, context, bool isSelected) {
   );
 }
 
-getTaskCard(TaskModel model, context, VoidCallback callback) {
+getTaskCard(TaskModel model, context, VoidCallback callback,
+    {ValueSetter<List>? refresh, List? tasksList}) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
     child: StatefulBuilder(builder: (context, setState) {
@@ -1366,6 +1422,7 @@ getTaskCard(TaskModel model, context, VoidCallback callback) {
                   });
                 }
               });
+              refresh!(tasksList!);
             },
             child: Container(
                 decoration: BoxDecoration(

@@ -1,6 +1,7 @@
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:yourteam/constants/colors.dart';
+import 'package:yourteam/constants/constant_utils.dart';
 import 'package:yourteam/constants/constants.dart';
 import 'package:yourteam/methods/auth_methods.dart';
 import 'package:yourteam/screens/auth/login_screen.dart';

@@ -13,10 +13,17 @@ xmlns:tools="http://schemas.android.com/tools"
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.hardware.sensor.proximity"/>
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND"/>
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
    <application
-        android:label="your team"
+        
+        android:label="Your Team"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
@@ -40,6 +47,13 @@ xmlns:tools="http://schemas.android.com/tools"
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="notification_id" />
+        <service 
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="camera|microphone"
+            android:stopWithTask="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -56,7 +56,7 @@ dependencies:
   audio_waveforms: ^1.0.0
   permission_handler: ^9.2.0
   dio: ^4.0.6
-  audioplayers: ^1.1.1
+  audioplayers: ^3.0.1
   audio_video_progress_bar: ^0.11.0
   any_link_preview: ^2.0.9
   url_launcher: ^6.1.7
@@ -67,7 +67,7 @@ dependencies:
   date_time_picker: ^2.1.0
   percent_indicator: ^4.2.2
   firebase_messaging: ^14.2.1
-  flutter_local_notifications: ^9.7.0
+  # flutter_local_notifications: ^9.7.0
   # agora_rtc_engine: ^6.1.0
   # agora_uikit: ^1.0.2
   timeago: ^3.3.0
@@ -77,10 +77,19 @@ dependencies:
   gallery_image_viewer: ^1.2.0
   # agora_uikit: ^1.1.0
 
-  callkeep: ^0.3.3
+  # callkeep: ^0.3.3
   awesome_notifications: ^0.7.4+1
   agora_rtc_engine: ^5.3.0
-  
+  flutter_keyboard_visibility: ^5.4.0
+  wakelock: ^0.6.2
+  # flutter_ringtone_player: ^3.2.0
+
+  flutter_callkit_incoming: ^1.0.3+3
+  # flutter_background_service: ^2.4.6
+  flutter_foreground_task: ^4.0.1
+  device_info_plus: ^8.1.0
+  proximity_sensor: ^1.0.4
+
 
 
   
@@ -96,7 +105,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
   flutter_launcher_icons: "^0.11.0"
-
+  flutter_svg:
 flutter_icons:
   android: "launcher_icon"
   ios: true
@@ -118,6 +127,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/
+    - assets/images/
+    - assets/icons/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
