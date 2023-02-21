@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:agora_rtc_engine/rtc_engine.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:uuid/uuid.dart';
+import 'package:wakelock/wakelock.dart';
 import 'package:yourteam/call_constants_global.dart';
 import 'package:yourteam/call_ongoing_notification.dart';
-import 'package:yourteam/config/config.dart';
 import 'package:yourteam/constants/constant_utils.dart';
 import 'package:yourteam/constants/constants.dart';
 import 'package:yourteam/methods/get_call_token.dart';
@@ -21,8 +19,6 @@ import 'package:yourteam/screens/call/calls_ui/components/rounded_button.dart';
 import 'package:yourteam/screens/call/calls_ui/constants.dart';
 import 'package:yourteam/screens/call/calls_ui/size_config.dart';
 import 'package:yourteam/utils/SharedPreferencesUser.dart';
-import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
 
 class Body extends StatefulWidget {
   const Body({super.key});
@@ -32,18 +28,18 @@ class Body extends StatefulWidget {
 }
 
 class BodyState extends State<Body> {
-  int userId = 0;
+  int? currentUserUid;
   bool isinit = false;
   bool _isJoined = false;
   int? _remoteUid;
   @override
   void initState() {
     super.initState();
-    userId = random.nextInt(50);
+    log("Token = " + TOKEN);
+    // userId = random.nextInt(50);
     startForegroundTask();
     if (engine == null) {
       // playing the audio of dialing the call
-      userId = random.nextInt(50);
       startAudio();
       initialize();
     } else {
@@ -57,7 +53,7 @@ class BodyState extends State<Body> {
       if (player.state != PlayerState.playing) {
         _playAudio();
         if (timer == null) {
-          timer = Timer(const Duration(seconds: 15), () {
+          timer = Timer(const Duration(seconds: 32), () {
             //checking if the user is dialing a call
             if (appValueNotifier.globalisCallOnGoing.value &&
                 !appValueNotifier.isCallAccepted.value) {
@@ -68,6 +64,7 @@ class BodyState extends State<Body> {
         }
       }
     }
+    // await getToken(CHANNEL_NAME);
     await SharedPrefrenceUser.setIsIncoming(false);
   }
 
@@ -81,7 +78,6 @@ class BodyState extends State<Body> {
   Future<void> initialize() async {
     await _handleCameraAndMic(Permission.camera);
     await _handleCameraAndMic(Permission.microphone);
-    await getToken(CHANNEL_NAME);
 
     await agorainit();
   }
@@ -101,159 +97,181 @@ class BodyState extends State<Body> {
     setState(() {});
 
     await _initAgoraRtcEngine();
-    _addAgoraEventHandlers();
+    // _addAgoraEventHandlers();
   }
 
-  Future<void> _initAgoraRtcEngine() async {
-    engine = await RtcEngine.create(agoraAppId);
-    if (VIDEO_OR_AUDIO_FLG == false) await engine!.enableVideo();
-    await engine!.setDefaultAudioRouteToSpeakerphone(
-        callValueNotifiers.isSpeakerOn.value);
-    await engine!.setChannelProfile(ChannelProfile.LiveBroadcasting);
-    await engine!.setClientRole(ClientRole.Broadcaster);
-    VideoEncoderConfiguration configuration = VideoEncoderConfiguration();
-    configuration.dimensions = const VideoDimensions(width: 1280, height: 720);
-    await engine!.setVideoEncoderConfiguration(configuration);
-    await engine!.joinChannel(
-      agoraTempToken,
-      'zk',
-      null,
-      userId,
-    );
-  }
-
-  //   Future<void> _initAgoraRtcEngine() async {
-  //   callValueNotifiers.isVideoOn.value = VIDEO_OR_AUDIO_FLG;
-  //   log("Initalizing agora");
-  //   engine = createAgoraRtcEngine();
-  //   await engine!.initialize(RtcEngineContext(appId: agoraAppId));
-  //   VideoEncoderConfiguration configuration = const VideoEncoderConfiguration(
-  //       orientationMode: OrientationMode.orientationModeFixedPortrait);
+  // Future<void> _initAgoraRtcEngine() async {
+  //   engine = await RtcEngine.create(agoraAppId);
+  // await engine!.enableVideo();
+  // await engine!.enableAudio();
+  // await engine!.setDefaultAudioRouteToSpeakerphone(
+  //     callValueNotifiers.isSpeakerOn.value);
+  //   await engine!.setChannelProfile(ChannelProfile.LiveBroadcasting);
+  //   await engine!.setClientRole(ClientRole.Broadcaster);
+  //   VideoEncoderConfiguration configuration = VideoEncoderConfiguration();
+  //   configuration.dimensions = const VideoDimensions(width: 1280, height: 720);
   //   await engine!.setVideoEncoderConfiguration(configuration);
-  //   try {
-  //     await engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
-  //   } catch (e) {
-  //     log(e.toString());
-  //   }
-  // await engine!.joinChannel(
-  //     token: agoraTempToken,
-  //     channelId: 'zk',
-  //     uid: userId,
-  //     options: const ChannelMediaOptions(
-  //       clientRoleType: ClientRoleType.clientRoleBroadcaster,
-  //       channelProfile: ChannelProfileType.channelProfileCommunication1v1,
-  //     ));
-
-  //   // Register the event handler
-  //   engine!.registerEventHandler(
-  //     RtcEngineEventHandler(
-  //         onLeaveChannel: (RtcConnection connection, RtcStats stats) {
-  //       setState(() {
-  //         infoStrings.add('onLeaveChannel');
-  //         users.clear();
-  //       });
-  //     }, onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-  //       if (callValueNotifiers.isVideoOn.value) {
-  //         engine!.enableVideo();
-  //       }
-  //       engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
-  //       log("joinSuccess");
-  //       setState(() {
-  //         _isJoined = true;
-  //       });
-  //     }, onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-  //       _remoteUid = remoteUid;
-  //       setState(() {
-  //         final info = 'userJoined: $remoteUid';
-  //         infoStrings.add(info);
-  //         users.add(remoteUid);
-  //       });
-  //       if (mounted) setState(() {});
-  //     }, onUserOffline: (RtcConnection connection, int remoteUid,
-  //             UserOfflineReasonType reason) {
-  //       setState(() {
-  //         final info = 'userOffline: $remoteUid';
-  //         infoStrings.add(info);
-  //         // _onCallEnd(context);
-  //         users.remove(remoteUid);
-  //         setState(() {
-  //           FlutterCallkitIncoming.endAllCalls();
-  //           appValueNotifier.globalisCallOnGoing.value = false;
-  //         });
-  //         try {
-  //           timer!.cancel();
-  //           timer = null;
-  //           closeAgora();
-  //         } catch (e) {}
-  //         appValueNotifier.setToInitial();
-  //         Navigator.pop(context);
-  //       });
-  //     }, onRtcStats: (RtcConnection connection, RtcStats stats) {
-  //       //updates every two seconds
-  //       {
-  //         log(stats.duration.toString());
-  //         if (mounted) setState(() {});
-  //       }
-  //     }),
+  //   await engine!.joinChannel(
+  //     TOKEN,
+  //     CHANNEL_NAME,
+  //     null,
+  //     userId,
   //   );
   // }
 
-  void _addAgoraEventHandlers() {
-    engine!.setEventHandler(RtcEngineEventHandler(error: (code) {
-      setState(() {
-        final info = 'onError: $code';
-      });
-    }, joinChannelSuccess: (channel, uid, elapsed) {
-      setState(() {
-        final info = 'onJoinChannel: $channel, uid: $uid';
-        // starttime = DateTime.now();
-      });
-      log("join success");
+  Future<void> _initAgoraRtcEngine() async {
+    log("Initalizing agora");
+    engine = createAgoraRtcEngine();
+    await engine!.initialize(RtcEngineContext(appId: agoraAppId));
+    VideoEncoderConfiguration configuration = const VideoEncoderConfiguration(
+        orientationMode: OrientationMode.orientationModeFixedPortrait);
+    await engine!.setVideoEncoderConfiguration(configuration);
+    await engine!.enableVideo();
+    await engine!.enableAudio();
+    await engine!.setDefaultAudioRouteToSpeakerphone(
+        callValueNotifiers.isSpeakerOn.value);
+    try {
+      // await engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
+      await engine!.leaveChannel();
+    } catch (e) {
+      log(e.toString());
+    }
+    await getToken(CHANNEL_NAME);
 
-      engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
-    }, leaveChannel: (stats) {
-      setState(() {
-        users.clear();
-      });
-      // _onCallEnd(context);
-    }, userJoined: (uid, elapsed) {
-      _remoteUid = uid;
-      setState(() {
-        final info = 'userJoined: $uid';
-        infoStrings.add(info);
-        users.add(uid);
-      });
-      if (mounted) setState(() {});
-    }, userOffline: (uid, elapsed) {
-      setState(() {
-        final info = 'userOffline: $uid';
-        infoStrings.add(info);
-        // _onCallEnd(context);
-        users.remove(uid);
+    await engine!.joinChannelWithUserAccount(
+        token: TOKEN,
+        channelId: CHANNEL_NAME,
+        userAccount: firebaseAuth.currentUser!.uid,
+        options: const ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleBroadcaster,
+          channelProfile: ChannelProfileType.channelProfileCommunication1v1,
+        ));
+    // await engine!.joinChannel(
+    //     token: TOKEN,
+    //     channelId: CHANNEL_NAME,
+    //     uid: userId,
+    //     options: const ChannelMediaOptions(
+    //       clientRoleType: ClientRoleType.clientRoleBroadcaster,
+    //       channelProfile: ChannelProfileType.channelProfileCommunication1v1,
+    //     ));
+
+    // Register the event handler
+    engine!.registerEventHandler(
+      RtcEngineEventHandler(
+          onLeaveChannel: (RtcConnection connection, RtcStats stats) {
         setState(() {
-          FlutterCallkitIncoming.endAllCalls();
-          appValueNotifier.globalisCallOnGoing.value = false;
+          infoStrings.add('onLeaveChannel');
+          users.clear();
         });
-        try {
-          timer!.cancel();
-          timer = null;
-          closeAgora();
-        } catch (e) {}
-        appValueNotifier.setToInitial();
-        Navigator.pop(context);
-      });
-    }, rtcStats: (stats) {
-      //updates every two seconds
-      {
-        log(stats.duration.toString());
-        setState(() {});
-      }
-    }, firstRemoteVideoFrame: (uid, width, height, elapsed) {
-      setState(() {
-        final info = 'firstRemoteVideo: $uid ${width}x $height';
-      });
-    }));
+      }, onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+        if (callValueNotifiers.isVideoOn.value) {
+          engine!.enableVideo();
+          callValueNotifiers.setSpeakerValue(true);
+          Wakelock.toggle(enable: false);
+        }
+        engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
+        log("joinSuccess");
+        setState(() {
+          _isJoined = true;
+        });
+        currentUserUid = connection.localUid;
+      }, onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+        _remoteUid = remoteUid;
+        appValueNotifier.isCallAccepted.value = true;
+        setState(() {
+          final info = 'userJoined: $remoteUid';
+          infoStrings.add(info);
+          users.add(remoteUid);
+        });
+        if (mounted) setState(() {});
+      }, onUserOffline: (RtcConnection connection, int remoteUid,
+              UserOfflineReasonType reason) {
+        setState(() {
+          final info = 'userOffline: $remoteUid';
+          infoStrings.add(info);
+          // _onCallEnd(context);
+          users.remove(remoteUid);
+          setState(() {
+            FlutterCallkitIncoming.endAllCalls();
+            appValueNotifier.globalisCallOnGoing.value = false;
+          });
+          try {
+            timer!.cancel();
+            timer = null;
+            closeAgora();
+          } catch (e) {}
+          appValueNotifier.setToInitial();
+          Navigator.pop(context);
+        });
+      }, onRtcStats: (RtcConnection connection, RtcStats stats) {
+        //updates every two seconds
+        {
+          log(stats.duration.toString());
+          if (mounted) setState(() {});
+        }
+      }, onTokenPrivilegeWillExpire: (connection, token) async {
+        await getToken(CHANNEL_NAME);
+        await engine!.renewToken(token);
+      }),
+    );
   }
+
+  // void _addAgoraEventHandlers() {
+  //   engine!.setEventHandler(RtcEngineEventHandler(error: (code) {
+  //     setState(() {
+  //       final info = 'onError: $code';
+  //     });
+  //   }, joinChannelSuccess: (channel, uid, elapsed) {
+  //     setState(() {
+  //       final info = 'onJoinChannel: $channel, uid: $uid';
+  //       // starttime = DateTime.now();
+  //     });
+  //     log("join success");
+
+  //     engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
+  //   }, leaveChannel: (stats) {
+  //     setState(() {
+  //       users.clear();
+  //     });
+  //     // _onCallEnd(context);
+  //   }, userJoined: (uid, elapsed) {
+  //     _remoteUid = uid;
+  //     setState(() {
+  //       final info = 'userJoined: $uid';
+  //       infoStrings.add(info);
+  //       users.add(uid);
+  //     });
+  //     if (mounted) setState(() {});
+  //   }, userOffline: (uid, elapsed) {
+  //     setState(() {
+  //       final info = 'userOffline: $uid';
+  //       infoStrings.add(info);
+  //       // _onCallEnd(context);
+  //       users.remove(uid);
+  //       setState(() {
+  //         FlutterCallkitIncoming.endAllCalls();
+  //         appValueNotifier.globalisCallOnGoing.value = false;
+  //       });
+  //       try {
+  //         timer!.cancel();
+  //         timer = null;
+  //         closeAgora();
+  //       } catch (e) {}
+  //       appValueNotifier.setToInitial();
+  //       Navigator.pop(context);
+  //     });
+  //   }, rtcStats: (stats) {
+  //     //updates every two seconds
+  //     {
+  //       log(stats.duration.toString());
+  //       setState(() {});
+  //     }
+  //   }, firstRemoteVideoFrame: (uid, width, height, elapsed) {
+  //     setState(() {
+  //       final info = 'firstRemoteVideo: $uid ${width}x $height';
+  //     });
+  //   }));
+  // }
   //  Future<void> _onCallEnd(BuildContext context) async {
   //   Navigator.pop(context);
   //   var msg=
@@ -297,125 +315,75 @@ class BodyState extends State<Body> {
     }
   }
 
-  List<Widget> _getRenderViews() {
-    final List<StatefulWidget> list = [];
-    if (role == ClientRole.Broadcaster) {
-      list.add(const RtcLocalView.SurfaceView());
-    }
-    users.forEach((int uid) =>
-        list.add(RtcRemoteView.SurfaceView(channelId: 'zk', uid: uid)));
-    return list;
-  }
+  // List<Widget> _getRenderViews() {
+  //   final List<StatefulWidget> list = [];
+  //   if (role == ClientRole.Broadcaster) {
+  //     list.add(const RtcLocalView.SurfaceView());
+  //   }
+  //   users.forEach((int uid) => list
+  //       .add(RtcRemoteView.SurfaceView(channelId: CHANNEL_NAME, uid: userId)));
+  //   return list;
+  // }
 
-  Widget _videoView(view) {
-    return Expanded(child: Container(child: view));
-  }
+  // Widget _videoView(view) {
+  //   return Expanded(child: Container(child: view));
+  // }
 
-  Widget _expandedVideoRow(List<Widget> views) {
-    final wrappedViews = views.map<Widget>(_videoView).toList();
-    return Expanded(
-      child: Row(
-        children: wrappedViews,
-      ),
-    );
-  }
+  // Widget _expandedVideoRow(List<Widget> views) {
+  //   final wrappedViews = views.map<Widget>(_videoView).toList();
+  //   return Expanded(
+  //     child: Row(
+  //       children: wrappedViews,
+  //     ),
+  //   );
+  // }
 
-  Widget _viewRows() {
-    final views = _getRenderViews();
-    switch (views.length) {
-      case 1:
-        return Column(
-          children: <Widget>[_videoView(views[0])],
-        );
-      case 2:
-        return Column(
-          children: <Widget>[
-            _expandedVideoRow([views[0]]),
-            _expandedVideoRow([views[1]])
-          ],
-        );
-      case 3:
-        return Column(
-          children: <Widget>[
-            _expandedVideoRow(views.sublist(0, 2)),
-            _expandedVideoRow(views.sublist(2, 3))
-          ],
-        );
-      case 4:
-        return Column(
-          children: <Widget>[
-            _expandedVideoRow(views.sublist(0, 2)),
-            _expandedVideoRow(views.sublist(2, 4))
-          ],
-        );
-      default:
-    }
-    return Container();
-  }
+  // Widget _viewRows() {
+  //   final views = _getRenderViews();
+  //   switch (views.length) {
+  //     case 1:
+  //       return Column(
+  //         children: <Widget>[_videoView(views[0])],
+  //       );
+  //     case 2:
+  //       return Column(
+  //         children: <Widget>[
+  //           _expandedVideoRow([views[0]]),
+  //           _expandedVideoRow([views[1]])
+  //         ],
+  //       );
+  //     case 3:
+  //       return Column(
+  //         children: <Widget>[
+  //           _expandedVideoRow(views.sublist(0, 2)),
+  //           _expandedVideoRow(views.sublist(2, 3))
+  //         ],
+  //       );
+  //     case 4:
+  //       return Column(
+  //         children: <Widget>[
+  //           _expandedVideoRow(views.sublist(0, 2)),
+  //           _expandedVideoRow(views.sublist(2, 4))
+  //         ],
+  //       );
+  //     default:
+  //   }
+  //   return Container();
+  // }
 
   @override
   Widget build(BuildContext context) {
-    VIDEO_OR_AUDIO_FLG = !callValueNotifiers.isVideoOn.value;
     return WithForegroundTask(
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(VIDEO_OR_AUDIO_FLG == false ? 0 : 20),
+          padding: const EdgeInsets.all(20),
           child: Center(
             child: Stack(
               // crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                VIDEO_OR_AUDIO_FLG
+                !callValueNotifiers.isVideoOn.value
                     ? Center(child: getAudioCall())
-                    : ValueListenableBuilder(
-                        valueListenable: appValueNotifier.isCallAccepted,
-                        builder: (context, value, child) {
-                          return ValueListenableBuilder(
-                            valueListenable: appValueNotifier.isCallDeclined,
-                            builder: (context, value2, child) {
-                              return ValueListenableBuilder(
-                                valueListenable:
-                                    appValueNotifier.isCallNotAnswered,
-                                builder: (context, notAnswered, child) {
-                                  if (value2 || notAnswered) {
-                                    try {
-                                      player.release();
-                                      player.dispose();
-                                    } catch (e) {}
-                                    Future.delayed(const Duration(seconds: 2),
-                                        () {
-                                      closeAgora;
-
-                                      appValueNotifier
-                                          .globalisCallOnGoing.value = false;
-                                      try {
-                                        timer!.cancel();
-                                        timer = null;
-                                      } catch (e) {}
-
-                                      appValueNotifier.setToInitial();
-                                      FlutterCallkitIncoming.endAllCalls();
-                                      SchedulerBinding.instance
-                                          .addPostFrameCallback((_) {
-                                        if (mounted) Navigator.pop(context);
-                                      });
-                                    });
-                                  }
-                                  if (value) {
-                                    try {
-                                      timer!.cancel();
-                                      timer = null;
-                                    } catch (e) {}
-                                    player.release();
-                                    player.dispose();
-                                  }
-
-                                  return _viewRows();
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
+                    : getVideoCall(),
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Row(
@@ -511,14 +479,20 @@ class BodyState extends State<Body> {
                                 onPressed: () async {
                                   callValueNotifiers.setIsVideoOn(
                                       !callValueNotifiers.isVideoOn.value);
-                                  if (VIDEO_OR_AUDIO_FLG == false) {
+                                  if (isVideoOn == false) {
                                     await engine!.enableVideo();
                                   } else {
                                     await engine!.disableVideo();
                                   }
+                                  // VIDEO_OR_AUDIO_FLG =
+                                  //     !callValueNotifiers.isVideoOn.value;
+
+                                  setState(() {});
                                 },
                                 child: Icon(
-                                  Icons.videocam_off,
+                                  isVideoOn
+                                      ? Icons.videocam
+                                      : Icons.videocam_off,
                                   color:
                                       isVideoOn ? Colors.black : Colors.white,
                                 ));
@@ -570,6 +544,86 @@ class BodyState extends State<Body> {
           ),
         ),
       ),
+    );
+  }
+
+  ValueListenableBuilder<bool> getVideoCall() {
+    return ValueListenableBuilder(
+      valueListenable: appValueNotifier.isCallAccepted,
+      builder: (context, value, child) {
+        return ValueListenableBuilder(
+          valueListenable: appValueNotifier.isCallDeclined,
+          builder: (context, value2, child) {
+            return ValueListenableBuilder(
+              valueListenable: appValueNotifier.isCallNotAnswered,
+              builder: (context, notAnswered, child) {
+                if (value2 || notAnswered) {
+                  try {
+                    player.release();
+                    player.dispose();
+                  } catch (e) {}
+                  Future.delayed(const Duration(seconds: 2), () {
+                    closeAgora;
+
+                    appValueNotifier.globalisCallOnGoing.value = false;
+                    try {
+                      timer!.cancel();
+                      timer = null;
+                    } catch (e) {}
+
+                    appValueNotifier.setToInitial();
+                    FlutterCallkitIncoming.endAllCalls();
+                    SchedulerBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) Navigator.pop(context);
+                    });
+                  });
+                }
+                if (value) {
+                  try {
+                    timer!.cancel();
+                    timer = null;
+                  } catch (e) {}
+                  player.release();
+                  player.dispose();
+                }
+                return (engine != null)
+                    ? Column(
+                        children: [
+                          Expanded(
+                              child: AgoraVideoView(
+                            controller: VideoViewController(
+                              rtcEngine: engine!,
+                              canvas: VideoCanvas(uid: currentUserUid),
+                            ),
+                          )),
+                          Expanded(
+                              child: AgoraVideoView(
+                            controller: VideoViewController.remote(
+                              rtcEngine: engine!,
+                              canvas: VideoCanvas(uid: _remoteUid),
+                              connection:
+                                  RtcConnection(channelId: CHANNEL_NAME),
+                            ),
+                          ))
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          const Spacer(),
+                          DialUserPic(
+                              image: CALLERDATA != null
+                                  ? (CALLERDATA['photoUrl'] == null)
+                                      ? staticPhotoUrl
+                                      : CALLERDATA['photoUrl']
+                                  : staticPhotoUrl),
+                          const Spacer(),
+                        ],
+                      );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -664,8 +718,11 @@ class BodyState extends State<Body> {
 
   closeAgora() async {
     try {
+      Wakelock.toggle(enable: false);
       await engine!.leaveChannel();
-      await engine!.destroy();
+      await engine!.release();
+      appValueNotifier.setToInitial();
+      callValueNotifiers.setToInitial();
     } catch (e) {
       log(e.toString());
     }

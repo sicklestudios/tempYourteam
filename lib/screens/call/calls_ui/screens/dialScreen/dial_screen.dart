@@ -16,6 +16,7 @@ class DialScreen extends StatelessWidget {
   void getAndSet() async {
     bool value = await SharedPrefrenceUser.getIsIncoming();
     appValueNotifier.isCallAccepted.value = value;
+
     if (value) {
       var tempdata = await SharedPrefrenceUser.getCallData();
 
@@ -27,13 +28,14 @@ class DialScreen extends StatelessWidget {
       CHANNEL_NAME = calldata['body']['token']['channelname'];
       CALLERDATA = calldata['body']['user_info'];
       SharedPrefrenceUser.setCallerName(CALLERDATA['name']);
-      log("Caller  name  " + CALLERDATA['name']);
     }
+    callValueNotifiers.setIsVideoOn(!VIDEO_OR_AUDIO_FLG);
   }
 
   @override
   Widget build(BuildContext context) {
     getAndSet();
+    appValueNotifier.globalisCallOnGoing.value = true;
 
     SizeConfig().init(context);
     return const Scaffold(

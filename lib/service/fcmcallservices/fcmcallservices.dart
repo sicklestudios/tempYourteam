@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:yourteam/call_constants_global.dart';
+import 'package:yourteam/call_ongoing_notification.dart';
 import 'package:yourteam/methods/get_call_token.dart';
 import 'package:yourteam/navigation_service.dart';
 import 'package:yourteam/screens/call/call_notification_sent.dart';
@@ -26,7 +27,13 @@ class FcmCallServices {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     //await fcmcallservices.initnotifiy();
+    // var notification = message.data;
+    // var data = await jsonDecode(notification['content']);
+    // if (data['body'] != "oye its a message" &&
+    //     data['body'] != "oye its a task") {
+    //   log('SHowing notification from fcmCall');
     await FcmCallServices.showFlutterNotification(message);
+    // }
   }
 
   // static Future<void> setupFlutterNotifications() async {
@@ -108,15 +115,15 @@ class FcmCallServices {
   //       debug: true);
   // }
 
-  static void dataAction(notification) async {
+  static void dataAction(notification, bool isInitial) async {
     var data = await jsonDecode(notification['content']);
-    if (data['body'] == "oye its a message") {
-      // LocalNotificationService.display(
-      //   message,
-      // );
-    } else if (data['body']['call_accepted'] == true) {
+    // log(data['body']);
+    if (data['body'] == "oye its a message" ||
+        data['body'] == "oye its a task") {
+      // LocalNotificationService.display(message);
+    } else if (data['body']['call_accepted'] == true && !isInitial) {
       appValueNotifier.setCallAccepted();
-    } else if (data['body']['call_accepted'] == false) {
+    } else if (data['body']['call_accepted'] == false && !isInitial) {
       appValueNotifier.setCallDeclined();
     } else {
       await FcmCallServices.onSelectNotification(notification);
@@ -130,7 +137,19 @@ class FcmCallServices {
 
       //checking if the message was for chat or calls notification
       // log(data['body']['call_accepted']);
-      dataAction(notification);
+      if (message != null) {
+        var data = await jsonDecode(notification['content']);
+        log(data['body'].toString());
+        if (data['body'] == "oye its a message" ||
+            data['body'] == "oye its a task") {
+          log('SHowing notification from fcm 133');
+          LocalNotificationService.display(
+            message,
+          );
+        } else {
+          dataAction(notification, false);
+        }
+      }
     }
   }
 
@@ -140,8 +159,31 @@ class FcmCallServices {
       log('Got a message whilst in the foreground!');
       if (message.notification != null) {
         var notification = message.data;
+
         if (message != null) {
-          dataAction(notification);
+          var data = await jsonDecode(notification['content']);
+          // log(data['body']);
+          if (data['body'] == "oye its a message" ||
+              data['body'] == "oye its a task") {
+            log(data['body']);
+          } else {
+            log("Not going");
+            dataAction(notification, false);
+          }
+
+          // var data = await jsonDecode(notification['content']);
+
+          // if (data['body'] == "oye its a message") {
+          //   //Dont do anything in the foreground
+          // } else if (data['body'] == "oye its a task") {
+          //   // LocalNotificationService.display(message);
+          // } else if (data['body']['call_accepted'] == true) {
+          //   appValueNotifier.setCallAccepted();
+          // } else if (data['body']['call_accepted'] == false) {
+          //   appValueNotifier.setCallDeclined();
+          // } else {
+          //   await FcmCallServices.onSelectNotification(notification);
+          // }
         }
       }
     });
@@ -149,7 +191,7 @@ class FcmCallServices {
       if (message.notification != null) {
         var notification = message.data;
         if (message != null) {
-          dataAction(notification);
+          dataAction(notification, false);
         }
       }
       //  flutterLocalNotificationsPlugin.initialize(initializationSettings,onSelectNotification: onSelectNotification);
@@ -159,7 +201,7 @@ class FcmCallServices {
         .then((RemoteMessage? message) async {
       var notification = message?.data;
       if (message != null) {
-        dataAction(notification);
+        dataAction(notification, true);
       }
       //  flutterLocalNotificationsPlugin.initialize(initializationSettings,onSelectNotification: onSelectNotification);
     });
@@ -208,6 +250,7 @@ class FcmCallServices {
     TOKEN = calldata['body']['token']['token'];
     CHANNEL_NAME = calldata['body']['token']['channelname'];
     CALLERDATA = calldata['body']['user_info'];
+    log(TOKEN + "This is token");
     // if(ISOPEN)
 //Navigator.push(CURRENT_CONTEXT, MaterialPageRoute(builder: (context)=>call_rtc()));
     // await Future.delayed(Duration(milliseconds: 100), () {

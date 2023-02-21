@@ -340,7 +340,7 @@ class _ChatScreenState extends State<ChatScreen>
                   valueListenable: appValueNotifier.globalisCallOnGoing,
                   builder: (context, value, widget) {
                     if (appValueNotifier.globalisCallOnGoing.value) {
-                      getCallNotifierWidget(context);
+                      return getCallNotifierWidget(context);
                     }
                     return Container();
                   }),
@@ -1071,7 +1071,6 @@ class _ChatScreenState extends State<ChatScreen>
     callValueNotifiers.setSpeakerValue(!calltype);
     callValueNotifiers.setIsVideoOn(!calltype);
     VIDEO_OR_AUDIO_FLG = calltype;
-
     // CALLERDATA = user;
     // new UserModel().pickcall;
     var msg = {

@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:math' as math;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_messaging/firebase_messaging.dart';
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -8,72 +9,73 @@ import 'dart:convert';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:yourteam/constants/constants.dart';
 
-// class LocalNotificationService {
-//   static math.Random random = math.Random();
-//   static int notificationId = 0;
-//   static final FlutterLocalNotificationsPlugin
-//       _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-//   //initalizing the notifications
-//   static void initialize() {
-//     const InitializationSettings initializationSettings =
-//         InitializationSettings(
-//             android: AndroidInitializationSettings("@mipmap/ic_launcher"),
-//             iOS: IOSInitializationSettings(
-//               requestSoundPermission: true,
-//               requestBadgePermission: true,
-//               requestAlertPermission: true,
-//             ));
+class LocalNotificationService {
+  static math.Random random = math.Random();
+  static int notificationId = 0;
+  static final FlutterLocalNotificationsPlugin
+      _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  //initalizing the notifications
+  static void initialize() {
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+            android: AndroidInitializationSettings("@mipmap/ic_launcher"),
+            iOS: IOSInitializationSettings(
+              requestSoundPermission: true,
+              requestBadgePermission: true,
+              requestAlertPermission: true,
+            ));
 
-//     _flutterLocalNotificationsPlugin.initialize(initializationSettings,
-//         onSelectNotification: onSelectNotification);
-//   }
+    _flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onSelectNotification: onSelectNotification);
+  }
 
-//   static onSelectNotification(String? payload) async {
-//     //Navigate to wherever you want
-//   }
-//   requestIOSPermissions() {
-//     _flutterLocalNotificationsPlugin
-//         .resolvePlatformSpecificImplementation<
-//             IOSFlutterLocalNotificationsPlugin>()
-//         ?.requestPermissions(
-//           alert: true,
-//           badge: true,
-//           sound: true,
-//         );
-//   }
+  static onSelectNotification(String? payload) async {
+    //Navigate to wherever you want
+  }
+  requestIOSPermissions() {
+    _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+  }
 
-//   //for showing the notification
-//   static Future<void> display(RemoteMessage message) async {
-//     try {
-//       // if()
-//       // notificationId=random.nextInt(1000);
-//       await _flutterLocalNotificationsPlugin.cancelAll();
+  //for showing the notification
+  static Future<void> display(RemoteMessage message) async {
+    log("Showing notifcation");
+    try {
+      // if()
+      // notificationId=random.nextInt(1000);
+      await _flutterLocalNotificationsPlugin.cancelAll();
 
-//       const NotificationDetails notificationDetails = NotificationDetails(
-//           android: AndroidNotificationDetails(
-//             "mychanel",
-//             "my chanel",
-//             // visibility: NotificationVisibility.public,
-//             importance: Importance.max,
-//             // groupKey: "group",
-//             // styleInformation: ,
-//             // setAsGroupSummary: true,
-//             priority: Priority.max,
-//           ),
-//           iOS: IOSNotificationDetails(
-//             threadIdentifier: "thread1",
-//           ));
-//       // print("my id is ${id.toString()}");
-//       await _flutterLocalNotificationsPlugin.show(
-//         notificationId,
-//         message.notification!.title,
-//         message.notification!.body,
-//         notificationDetails,
-//       );
-//     } on Exception catch (e) {
-//       log(e.toString());
-//     }
-//   }
+      const NotificationDetails notificationDetails = NotificationDetails(
+          android: AndroidNotificationDetails(
+            "mychanel",
+            "my chanel",
+            // visibility: NotificationVisibility.public,
+            importance: Importance.min,
+            // groupKey: "group",
+            // styleInformation: ,
+            // setAsGroupSummary: true,
+            priority: Priority.min,
+          ),
+          iOS: IOSNotificationDetails(
+            threadIdentifier: "thread1",
+          ));
+      // print("my id is ${id.toString()}");
+      await _flutterLocalNotificationsPlugin.show(
+        notificationId,
+        message.notification!.title,
+        message.notification!.body,
+        notificationDetails,
+      );
+    } on Exception catch (e) {
+      log(e.toString());
+    }
+  }
 
 // Future<void> scheduleNotifications({id, title, body, time}) async {
 //   try {
@@ -93,15 +95,19 @@ import 'package:yourteam/constants/constants.dart';
 //     log(e.toString());
 //   }
 // }
-// }
+}
 
 sendNotification(String id, String token, String message) async {
+  String myMessage = "oye its a message";
+  if (message.endsWith("task")) {
+    myMessage = "oye its a task";
+  }
   final data = {
     "content": {
       'click_action': 'FLUTTER_NOTIFICATION_CLICK',
       'id': id,
       'status': 'done',
-      "body": "oye its a message",
+      "body": myMessage,
       'message': message,
     }
   };

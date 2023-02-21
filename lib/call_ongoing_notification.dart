@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 // import 'package:flutter_background_service/flutter_background_service.dart';
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:flutter_background_service_android/flutter_background_service_android.dart';
-import 'package:yourteam/constants/colors.dart';
 import 'package:yourteam/constants/constants.dart';
 import 'package:yourteam/utils/SharedPreferencesUser.dart';
 
@@ -75,28 +73,40 @@ class MyTaskHandler extends TaskHandler {
   }
 }
 
-void initalizeNotification() {
-  final AwesomeNotifications awesomeNotifications = AwesomeNotifications();
-  awesomeNotifications.initialize(
-      // set the icon to null if you want to use the default app icon
-      null,
-      [
-        NotificationChannel(
-            channelKey: 'message',
-            channelName: 'message_notification',
-            channelDescription: 'A channel for message notifications',
-            defaultColor: mainColorFaded,
-            importance: NotificationImportance.Default),
-        // NotificationChannel(
-        //     channelKey: 'my_foreground',
-        //     channelName: 'MY FOREGROUND SERVICE',
-        //     channelDescription:
-        //         'This channel is used for important notifications.',
-        //     defaultColor: mainColor,
-        //     importance: NotificationImportance.Min)
-      ],
-      debug: false);
-}
+// void initalizeNotification() {
+//   final AwesomeNotifications awesomeNotifications = AwesomeNotifications();
+//   awesomeNotifications.initialize(
+//       // set the icon to null if you want to use the default app icon
+//       null,
+//       [
+//         NotificationChannel(
+//             channelKey: 'message',
+//             channelName: 'message_notification',
+//             channelDescription: 'A channel for message notifications',
+//             defaultColor: mainColorFaded,
+//             importance: NotificationImportance.Default),
+//         // NotificationChannel(
+//         //     channelKey: 'my_foreground',
+//         //     channelName: 'MY FOREGROUND SERVICE',
+//         //     channelDescription:
+//         //         'This channel is used for important notifications.',
+//         //     defaultColor: mainColor,
+//         //     importance: NotificationImportance.Min)
+//       ],
+//       debug: false);
+// }
+
+// void showMessageNotification(String message) async {
+//   await AwesomeNotifications().dismissAllNotifications();
+//   AwesomeNotifications().createNotification(
+//     content: NotificationContent(
+//       id: Random().nextInt(1000),
+//       channelKey: "message",
+//       title: appName,
+//       body: message,
+//     ),
+//   );
+// }
 
 void initForegroundTask() {
   FlutterForegroundTask.init(

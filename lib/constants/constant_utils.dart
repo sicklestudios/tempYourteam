@@ -35,10 +35,9 @@ Widget getCallNotifierWidget(context) {
     width: MediaQuery.of(context).size.width,
     decoration: const BoxDecoration(color: mainColor),
     child: Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: mainColor,
       body: InkWell(
         onTap: () {
-          log("Hi Call pressed");
           Navigator.push(context,
               MaterialPageRoute(builder: (context) => const DialScreen()));
         },

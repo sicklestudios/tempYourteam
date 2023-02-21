@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -20,7 +21,6 @@ import 'package:yourteam/screens/auth/login_screen.dart';
 import 'package:yourteam/screens/bottom_pages.dart/contacts_screen.dart';
 import 'package:yourteam/screens/bottom_pages.dart/profile/profile_screen.dart';
 import 'package:yourteam/screens/bottom_pages.dart/todo_screen.dart';
-import 'package:yourteam/screens/call/calls_ui/screens/dialScreen/dial_screen.dart';
 import 'package:yourteam/screens/drawer/drawer_files/drawer_menu-controller.dart';
 import 'package:yourteam/screens/drawer/drawer_todo_controller.dart';
 import 'package:yourteam/screens/notifications_screen.dart';
@@ -30,11 +30,20 @@ import 'package:yourteam/screens/toppages/call_screen_list.dart';
 import 'package:yourteam/screens/toppages/chat/chat_list_screen.dart';
 import 'package:yourteam/service/fcmcallservices/fcmcallservices.dart';
 import 'package:yourteam/service/local_push_notification.dart';
-// //message handler
+
+// // //message handler
 // Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   LocalNotificationService.display(
-//     message,
-//   );
+//   var notification = message.data;
+
+//   var data = await jsonDecode(notification['content']);
+//   if (data['body'] == "oye its a message" || data['body'] == "oye its a task") {
+//     log('SHowing notification from home');
+//     LocalNotificationService.display(
+//       message,
+//     );
+//   } else {
+//     await FcmCallServices.showFlutterNotification(message);
+//   }
 // }
 
 class HomeController extends StatefulWidget {
@@ -63,7 +72,6 @@ class _HomeControllerState extends State<HomeController>
     await FcmCallServices.forgroundnotify();
     FirebaseMessaging.onBackgroundMessage(
         FcmCallServices.firebaseMessagingBackgroundHandler);
-    await FcmCallServices.notificationstream();
   }
 
   _getText() {
@@ -139,7 +147,6 @@ class _HomeControllerState extends State<HomeController>
     AuthMethods().setUserState(true);
     //setting up fcm
 
-    // // FirebaseMessaging.instance.getInitialMessage();
     // FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     // FirebaseMessaging.onMessage.listen((event) {
@@ -153,7 +160,7 @@ class _HomeControllerState extends State<HomeController>
     SchedulerBinding.instance.addPostFrameCallback((_) {
       setState(() {});
     });
-    initalizeNotification();
+    LocalNotificationService.initialize();
     initForegroundTask();
     _ambiguate(WidgetsBinding.instance)?.addPostFrameCallback((_) async {
       // You can get the previous ReceivePort without restarting the service.
@@ -182,6 +189,9 @@ class _HomeControllerState extends State<HomeController>
   }
 
   checkAndNavigationCallingPage() async {
+    appValueNotifier.setToInitial();
+    appValueNotifier.setCallAccepted();
+    callValueNotifiers.setToInitial();
     var currentCall = await getCurrentCall();
     if (currentCall != null) {
       setState(() {
@@ -327,7 +337,7 @@ class _HomeControllerState extends State<HomeController>
                       valueListenable: appValueNotifier.globalisCallOnGoing,
                       builder: (context, value, widget) {
                         if (appValueNotifier.globalisCallOnGoing.value) {
-                          getCallNotifierWidget(context);
+                          return getCallNotifierWidget(context);
                         }
                         return Container();
                       }),

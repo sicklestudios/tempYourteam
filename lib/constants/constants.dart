@@ -1,4 +1,3 @@
-import 'package:agora_rtc_engine/rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -21,7 +20,7 @@ var PROFILE;
 var VIDEO_OR_AUDIO_FLG = false;
 var ISOPEN = false;
 var CURRENT_CONTEXT;
-var role = ClientRole.Broadcaster;
+// var role = Client.Broadcaster;
 
 String agoraAppId = "b2f84a50565243f2a23a384c7fbb229c";
 String agoraAppCertificate = "478b46cf1f6948058dfa2222f76e77f7";

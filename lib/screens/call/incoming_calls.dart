@@ -27,7 +27,7 @@ void showIncomingCall() async {
             : CALLERDATA['photoUrl']
         : "Nothing to show",
     handle: '',
-    type: 1,
+    type: VIDEO_OR_AUDIO_FLG == false ? 1 : 0,
     textAccept: 'Accept',
     textDecline: 'Decline',
     textMissedCall: 'Missed call',
@@ -86,10 +86,10 @@ Future<void> listenerEvent() async {
           // TODO: show screen calling in Flutter
           // FcmCallServices.getcallerdata(event);
           SharedPrefrenceUser.setIsIncoming(true);
-          appValueNotifier.setCallAccepted();
+
           FcmCallServices.respondToCall(true);
-          NavigationService.instance
-              .pushNamedIfNotCurrent(AppRoute.callingPage, args: event.body);
+          // NavigationService.instance
+          //     .pushNamedIfNotCurrent(AppRoute.callingPage, args: event.body);
           log("Incoming call");
           break;
         case Event.ACTION_CALL_DECLINE:
