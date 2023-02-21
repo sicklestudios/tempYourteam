@@ -144,7 +144,7 @@ class BodyState extends State<Body> {
         userAccount: firebaseAuth.currentUser!.uid,
         options: const ChannelMediaOptions(
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
-          channelProfile: ChannelProfileType.channelProfileCommunication1v1,
+          channelProfile: ChannelProfileType.channelProfileCommunication,
         ));
     // await engine!.joinChannel(
     //     token: TOKEN,
@@ -589,13 +589,14 @@ class BodyState extends State<Body> {
                 return (engine != null)
                     ? Column(
                         children: [
-                          Expanded(
-                              child: AgoraVideoView(
-                            controller: VideoViewController(
-                              rtcEngine: engine!,
-                              canvas: VideoCanvas(uid: currentUserUid),
-                            ),
-                          )),
+                          if (_isJoined)
+                            Expanded(
+                                child: AgoraVideoView(
+                              controller: VideoViewController(
+                                rtcEngine: engine!,
+                                canvas: VideoCanvas(uid: currentUserUid),
+                              ),
+                            )),
                           Expanded(
                               child: AgoraVideoView(
                             controller: VideoViewController.remote(
