@@ -1,14 +1,10 @@
 import 'dart:convert';
 import 'dart:developer';
 // import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:yourteam/call_constants_global.dart';
-import 'package:yourteam/call_ongoing_notification.dart';
-import 'package:yourteam/methods/get_call_token.dart';
-import 'package:yourteam/navigation_service.dart';
 import 'package:yourteam/screens/call/call_notification_sent.dart';
 import 'package:yourteam/screens/call/calls_ui/screens/dialScreen/dial_screen.dart';
 import 'package:yourteam/screens/call/incoming_calls.dart';
@@ -16,7 +12,6 @@ import 'package:yourteam/service/local_push_notification.dart';
 import 'package:yourteam/utils/SharedPreferencesUser.dart';
 import '../../constants/constants.dart';
 import '../../firebase_options.dart';
-import '../../screens/call/call_rtc.dart';
 
 class FcmCallServices {
   @pragma('vm:entry-point')

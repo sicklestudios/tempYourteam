@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -16,12 +17,13 @@ class LocalNotificationService {
       _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   //initalizing the notifications
   static void initialize() {
+    requestIOSPermissions();
     const InitializationSettings initializationSettings =
         InitializationSettings(
             android: AndroidInitializationSettings("@mipmap/ic_launcher"),
             iOS: IOSInitializationSettings(
               requestSoundPermission: true,
-              requestBadgePermission: true,
+              requestBadgePermission: false,
               requestAlertPermission: true,
             ));
 
@@ -32,15 +34,17 @@ class LocalNotificationService {
   static onSelectNotification(String? payload) async {
     //Navigate to wherever you want
   }
-  requestIOSPermissions() {
-    _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+  static requestIOSPermissions() {
+    if (Platform.isIOS) {
+      _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+    }
   }
 
   //for showing the notification

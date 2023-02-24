@@ -66,6 +66,12 @@
 		<key>NSCameraUsageDescription</key>
 		<string>Camera Library Use</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>Mic Use</string>
+		<string>This app requires Mic permission.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>processing</string>
+			<string>remote-notification</string>
+			<string>voip</string>
+		</array>
 	</dict>
 </plist>

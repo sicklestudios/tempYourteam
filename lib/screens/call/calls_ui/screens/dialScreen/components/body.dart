@@ -8,7 +8,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:wakelock/wakelock.dart';
+// import 'package:wakelock/wakelock.dart';
 import 'package:yourteam/call_constants_global.dart';
 import 'package:yourteam/call_ongoing_notification.dart';
 import 'package:yourteam/constants/constant_utils.dart';
@@ -28,7 +28,7 @@ class Body extends StatefulWidget {
 }
 
 class BodyState extends State<Body> {
-  int? currentUserUid;
+  int currentUserUid = 0;
   bool isinit = false;
   bool _isJoined = false;
   int? _remoteUid;
@@ -63,6 +63,7 @@ class BodyState extends State<Body> {
           });
         }
       }
+      currentUserUid = 0;
     }
     // await getToken(CHANNEL_NAME);
     await SharedPrefrenceUser.setIsIncoming(false);
@@ -167,14 +168,13 @@ class BodyState extends State<Body> {
         if (callValueNotifiers.isVideoOn.value) {
           engine!.enableVideo();
           callValueNotifiers.setSpeakerValue(true);
-          Wakelock.toggle(enable: false);
+          // Wakelock.toggle(enable: false);
         }
         engine!.setEnableSpeakerphone(callValueNotifiers.isSpeakerOn.value);
         log("joinSuccess");
         setState(() {
           _isJoined = true;
         });
-        currentUserUid = connection.localUid;
       }, onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
         _remoteUid = remoteUid;
         appValueNotifier.isCallAccepted.value = true;
@@ -586,17 +586,11 @@ class BodyState extends State<Body> {
                   player.release();
                   player.dispose();
                 }
+                log(currentUserUid.toString());
                 return (engine != null)
                     ? Column(
                         children: [
-                          if (_isJoined)
-                            Expanded(
-                                child: AgoraVideoView(
-                              controller: VideoViewController(
-                                rtcEngine: engine!,
-                                canvas: VideoCanvas(uid: currentUserUid),
-                              ),
-                            )),
+                          if (_isJoined) getLocalView(),
                           Expanded(
                               child: AgoraVideoView(
                             controller: VideoViewController.remote(
@@ -626,6 +620,20 @@ class BodyState extends State<Body> {
         );
       },
     );
+  }
+
+  getLocalView() {
+    try {
+      return Expanded(
+          child: AgoraVideoView(
+        controller: VideoViewController(
+          rtcEngine: engine!,
+          canvas: VideoCanvas(uid: currentUserUid),
+        ),
+      ));
+    } catch (e) {
+      log("Local video: " + e.toString());
+    }
   }
 
   // Widget getVideoCall() {
@@ -719,7 +727,7 @@ class BodyState extends State<Body> {
 
   closeAgora() async {
     try {
-      Wakelock.toggle(enable: false);
+      // Wakelock.toggle(enable: false);
       await engine!.leaveChannel();
       await engine!.release();
       appValueNotifier.setToInitial();
